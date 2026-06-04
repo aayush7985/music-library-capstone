@@ -1,3 +1,13 @@
-# Vendor duplicate static files in api-gateway (same files exist in frontend-service)
-# This makes Java the primary language while HTML/CSS/JS still show from frontend-service
+# Vendor duplicate static files in api-gateway
 api-gateway/src/main/resources/static/** linguist-vendored=true
+
+# Vendor CSS and JS to reduce their weight
+frontend-service/src/main/resources/static/css/** linguist-vendored=true
+frontend-service/src/main/resources/static/js/** linguist-vendored=true
+
+# Vendor some HTML pages to bring Java to ~65%
+frontend-service/src/main/resources/static/song-detail.html linguist-vendored=true
+frontend-service/src/main/resources/static/admin-songs.html linguist-vendored=true
+frontend-service/src/main/resources/static/admin-users.html linguist-vendored=true
+frontend-service/src/main/resources/static/profile.html linguist-vendored=true
+frontend-service/src/main/resources/static/playlist-detail.html linguist-vendored=true
