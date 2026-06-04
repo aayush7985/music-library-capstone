@@ -1,0 +1,4 @@
+# Tell GitHub Linguist to ignore frontend files for language stats
+*.html linguist-detectable=false
+*.css  linguist-detectable=false
+*.js   linguist-detectable=false
