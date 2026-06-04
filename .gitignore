@@ -1,0 +1,49 @@
+# ===== COMPILED OUTPUT =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# ===== MAVEN =====
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ===== IDE FILES =====
+.idea/
+*.iml
+*.iws
+*.ipr
+.eclipse/
+.settings/
+.project
+.classpath
+.factorypath
+nbproject/
+
+# ===== VS CODE (keep tasks.json only) =====
+.vscode/*
+!.vscode/tasks.json
+
+# ===== LOGS =====
+*.log
+logs/
+spring.log
+
+# ===== OS FILES =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== H2 DATABASE =====
+*.db
+*.mv.db
+*.trace.db
+
+# ===== CONFIG REPO GIT (keep yml files, ignore git internals) =====
+config-repo/.git/
+
+# ===== FRONTEND BUILD =====
+node_modules/
+dist/

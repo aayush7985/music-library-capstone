@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MusicLib — Your Music, Your World</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="landing-page">
+  <nav class="landing-nav">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      MusicLib
+    </div>
+    <div class="nav-links">
+      <a href="/admin-login.html" class="btn btn-secondary btn-sm">Admin Login</a>
+      <a href="/user-login.html" class="btn btn-secondary btn-sm">Sign In</a>
+      <a href="/user-register.html" class="btn btn-primary btn-sm">Get Started</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="tagline">🎵 Your Ultimate Music Companion</div>
+    <h1>Discover, Listen &<br><span>Vibe to Music</span></h1>
+    <p>Explore a vast library of songs, create personalized playlists, and enjoy a seamless music experience — all in one place.</p>
+    <div class="hero-actions">
+      <a href="/user-register.html" class="btn btn-primary btn-lg">Start Listening Free</a>
+      <a href="/user-login.html" class="btn btn-secondary btn-lg">Sign In</a>
+    </div>
+  </div>
+
+  <div style="text-align:center; padding-bottom: 48px; color: var(--text-muted); font-size: 0.85rem;">
+    Admin? <a href="/admin-login.html" style="color: var(--accent);">Login here</a>
+  </div>
+</div>
+<script>
+  const token = sessionStorage.getItem('token');
+  const user = JSON.parse(sessionStorage.getItem('user') || 'null');
+  if (token && user) {
+    window.location.href = user.role === 'ROLE_ADMIN' ? '/admin-dashboard.html' : '/user-dashboard.html';
+  }
+</script>
+</body>
+</html>

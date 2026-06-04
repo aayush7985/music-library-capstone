@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — MusicLib</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      MusicLib Admin
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Admin Panel</div>
+      <ul>
+        <li class="nav-item"><a href="/admin-dashboard.html" class="active">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Dashboard
+        </a></li>
+        <li class="nav-item"><a href="/admin-songs.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg> Manage Songs
+        </a></li>
+        <li class="nav-item"><a href="/admin-users.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg> Manage Users
+        </a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary btn-full btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="navbar">
+      <div class="navbar-brand">🛡️ Admin Dashboard</div>
+      <div class="navbar-spacer"></div>
+      <div class="navbar-user">
+        <div class="user-avatar" id="nav-user-avatar" style="background: var(--info);">A</div>
+        <span id="nav-user-name">Admin</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="page-header mb-3">
+        <h1>Welcome back, <span id="adminName" class="text-accent">Admin</span> 👋</h1>
+        <p>Here's an overview of your music library</p>
+      </div>
+
+      <div class="stats-row" id="statsRow">
+        <div class="stat-card"><div class="stat-icon red">🎵</div><div><div class="stat-value" id="totalSongs">—</div><div class="stat-label">Total Songs</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="stat-value" id="visibleSongs">—</div><div class="stat-label">Visible Songs</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">👥</div><div><div class="stat-value" id="totalUsers">—</div><div class="stat-label">Registered Users</div></div></div>
+        <div class="stat-card"><div class="stat-icon orange">🔔</div><div><div class="stat-value" id="hiddenSongs">—</div><div class="stat-label">Hidden Songs</div></div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+        <div class="card">
+          <div class="card-header"><span class="fw-bold">Recent Songs</span><a href="/admin-songs.html" class="btn btn-sm btn-secondary">View All</a></div>
+          <div id="recentSongs" class="card-body" style="padding:0"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="fw-bold">Quick Actions</span></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+            <a href="/admin-songs.html" class="btn btn-primary">🎵 Add New Song</a>
+            <a href="/admin-users.html" class="btn btn-secondary">👥 Manage Users</a>
+            <a href="/admin-songs.html" class="btn btn-outline">🔍 Search Songs</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  async function init() {
+    if (!requireAuth('admin')) return;
+    setUserNav();
+    const user = getUser();
+    document.getElementById('adminName').textContent = user?.name || 'Admin';
+
+    const [songsRes, usersRes] = await Promise.all([
+      apiGet('/api/songs/all'),
+      apiGet('/api/admin/users')
+    ]);
+
+    const allSongs = songsRes?.data || [];
+    const visible = allSongs.filter(s => s.visible).length;
+    const hidden = allSongs.length - visible;
+
+    document.getElementById('totalSongs').textContent = allSongs.length;
+    document.getElementById('visibleSongs').textContent = visible;
+    document.getElementById('hiddenSongs').textContent = hidden;
+    document.getElementById('totalUsers').textContent = usersRes?.data?.length || 0;
+
+    const recent = allSongs.slice(-5).reverse();
+    document.getElementById('recentSongs').innerHTML = recent.length ? `
+      <table><tbody>${recent.map(s => `
+        <tr><td style="padding:12px 16px">
+          <div style="font-weight:600">${s.title}</div>
+          <div style="font-size:0.8rem;color:var(--text-secondary)">${s.singer}</div>
+        </td><td style="padding:12px 16px">
+          <span class="status-badge ${s.visible ? 'visible' : 'hidden'}">${s.visible ? 'Visible' : 'Hidden'}</span>
+        </td></tr>`).join('')}
+      </tbody></table>` : '<div class="empty-state" style="padding:20px"><p>No songs yet</p></div>';
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Playlists — MusicLib</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      MusicLib
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li class="nav-item"><a href="/user-dashboard.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Home
+        </a></li>
+        <li class="nav-item"><a href="/playlists.html" class="active">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg> My Playlists
+        </a></li>
+        <li class="nav-item"><a href="/profile.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Profile
+        </a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary btn-full btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="navbar">
+      <div class="navbar-brand">🎵 My Playlists</div>
+      <div class="navbar-spacer"></div>
+      <div class="navbar-actions">
+        <div class="navbar-user">
+          <div class="user-avatar" id="nav-user-avatar">U</div>
+          <span id="nav-user-name">User</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="page-header-row">
+        <div class="page-header">
+          <h1>My Playlists</h1>
+          <p>Manage your personal music collections</p>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ New Playlist</button>
+      </div>
+
+      <div id="alert" class="alert"></div>
+      <div id="playlistsContainer">
+        <div class="empty-state"><div class="empty-icon">📋</div><p>Loading playlists...</p></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Create / Edit Modal -->
+<div class="modal-overlay" id="playlistModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">New Playlist</h3>
+      <button class="btn-icon" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Playlist Name</label>
+        <input type="text" class="form-control" id="plName" placeholder="e.g. Morning Vibes">
+      </div>
+      <div class="form-group">
+        <label>Description (optional)</label>
+        <input type="text" class="form-control" id="plDesc" placeholder="What's this playlist about?">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="savePlaylist()">Create</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  let currentUser = null;
+  let editingId = null;
+
+  async function init() {
+    if (!requireAuth('user')) return;
+    currentUser = getUser();
+    setUserNav();
+    await loadPlaylists();
+  }
+
+  async function loadPlaylists() {
+    const res = await apiGet('/api/playlists');
+    const container = document.getElementById('playlistsContainer');
+    const playlists = res?.data || [];
+
+    if (!playlists.length) {
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-icon">📋</div>
+        <h3>No playlists yet</h3>
+        <p>Create your first playlist to get started!</p>
+        <button class="btn btn-primary mt-2" onclick="openCreateModal()">+ Create Playlist</button>
+      </div>`;
+      return;
+    }
+
+    const emojis = ['🎵', '🎸', '🎹', '🎺', '🥁', '🎻', '🎤', '🎧', '🎼', '🎶'];
+    container.innerHTML = `<div class="playlists-grid">${playlists.map((p, i) => `
+      <div class="playlist-card" onclick="openPlaylist(${p.id})">
+        <div class="playlist-cover">${emojis[i % emojis.length]}</div>
+        <div class="playlist-body">
+          <div class="playlist-name">${p.name}</div>
+          <div class="playlist-meta">${p.songCount || p.songs?.length || 0} songs · ${formatDate(p.createdAt)}</div>
+          ${p.description ? `<div class="playlist-meta mt-1" style="font-style:italic">${p.description}</div>` : ''}
+          <div class="playlist-actions" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-sm" onclick="editPlaylist(${p.id},'${p.name.replace(/'/g,"\\'")}','${(p.description||'').replace(/'/g,"\\'")}')">✏️ Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deletePlaylist(${p.id})">🗑 Delete</button>
+          </div>
+        </div>
+      </div>`).join('')}
+    </div>`;
+  }
+
+  function openPlaylist(id) { window.location.href = `/playlist-detail.html?id=${id}`; }
+
+  function openCreateModal() {
+    editingId = null;
+    document.getElementById('modalTitle').textContent = 'New Playlist';
+    document.getElementById('plName').value = '';
+    document.getElementById('plDesc').value = '';
+    document.getElementById('modalSaveBtn').textContent = 'Create';
+    document.getElementById('playlistModal').classList.add('open');
+  }
+
+  function editPlaylist(id, name, desc) {
+    editingId = id;
+    document.getElementById('modalTitle').textContent = 'Edit Playlist';
+    document.getElementById('plName').value = name;
+    document.getElementById('plDesc').value = desc;
+    document.getElementById('modalSaveBtn').textContent = 'Save Changes';
+    document.getElementById('playlistModal').classList.add('open');
+  }
+
+  function closeModal() { document.getElementById('playlistModal').classList.remove('open'); }
+
+  async function savePlaylist() {
+    const name = document.getElementById('plName').value.trim();
+    if (!name) { alert('Playlist name is required'); return; }
+    const body = { name, description: document.getElementById('plDesc').value.trim() };
+
+    const res = editingId
+      ? await apiPut(`/api/playlists/${editingId}`, body)
+      : await apiPost('/api/playlists', body);
+
+    if (res?.ok) {
+      closeModal();
+      showAlert('alert', editingId ? 'Playlist updated!' : 'Playlist created!', 'success');
+      await loadPlaylists();
+    } else {
+      showAlert('alert', res?.data?.message || 'Failed to save playlist');
+    }
+  }
+
+  async function deletePlaylist(id) {
+    if (!confirm('Delete this playlist?')) return;
+    const res = await apiDelete(`/api/playlists/${id}`);
+    if (res?.ok) { showAlert('alert', 'Playlist deleted', 'success'); await loadPlaylists(); }
+    else showAlert('alert', 'Failed to delete playlist');
+  }
+
+  init();
+</script>
+</body>
+</html>

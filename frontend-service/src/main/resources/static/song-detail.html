@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Song Detail — MusicLib</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      MusicLib
+    </div>
+    <nav class="sidebar-nav">
+      <ul>
+        <li class="nav-item"><a href="/user-dashboard.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Home
+        </a></li>
+        <li class="nav-item"><a href="/playlists.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg> My Playlists
+        </a></li>
+        <li class="nav-item"><a href="/profile.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Profile
+        </a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary btn-full btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <header class="navbar">
+      <button class="btn btn-secondary btn-sm" onclick="history.back()">← Back</button>
+      <div class="navbar-spacer"></div>
+      <div class="navbar-user">
+        <div class="user-avatar" id="nav-user-avatar">U</div>
+        <span id="nav-user-name">User</span>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div id="alert" class="alert"></div>
+      <div id="songDetail"><div class="empty-state"><div class="spinner"></div></div></div>
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  let song = null;
+  let currentUser = null;
+
+  async function init() {
+    if (!requireAuth('user')) return;
+    currentUser = getUser();
+    setUserNav();
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) { window.location.href = '/user-dashboard.html'; return; }
+
+    const res = await apiGet(`/api/songs/${id}`);
+    if (!res?.ok) { showAlert('alert', 'Song not found'); return; }
+    song = res.data;
+    renderSong(song);
+  }
+
+  function renderSong(s) {
+    const icons = ['🎸', '🎹', '🎺', '🥁', '🎻', '🎤', '🎧'];
+    document.getElementById('songDetail').innerHTML = `
+      <div class="song-detail-hero">
+        <div class="song-detail-cover">${icons[s.id % icons.length]}</div>
+        <div class="song-detail-info">
+          <h1>${s.title}</h1>
+          <div class="singer">🎤 ${s.singer}</div>
+          <div class="meta-grid">
+            <div class="meta-item"><label>Album</label><span>${s.albumName || '—'}</span></div>
+            <div class="meta-item"><label>Genre</label><span>${s.genre || '—'}</span></div>
+            <div class="meta-item"><label>Music Director</label><span>${s.musicDirector}</span></div>
+            <div class="meta-item"><label>Release Date</label><span>${formatDate(s.releaseDate)}</span></div>
+            <div class="meta-item"><label>Duration</label><span>${s.duration || '—'}</span></div>
+          </div>
+          <div style="display:flex; gap:10px; margin-top:24px;">
+            <button class="btn btn-primary" onclick="addToPlaylist()">+ Add to Playlist</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="fw-bold">Player</span><span class="text-muted fs-sm">Demo player</span></div>
+        <div class="card-body">
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <div style="flex:1; min-width:200px;">
+              <div style="font-weight:700; margin-bottom:4px;">${s.title}</div>
+              <div style="font-size:0.85rem; color:var(--text-secondary);">${s.singer}</div>
+              <div class="progress-bar" style="margin-top:12px;"><div class="progress-fill" id="progress"></div></div>
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-top:4px;"><span id="currentTime">0:00</span><span>${s.duration || '—'}</span></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="player-btn" id="shuffleBtn" onclick="toggleShuffle()" title="Shuffle">🔀</button>
+              <button class="player-btn" onclick="prevTrack()" title="Previous">⏮</button>
+              <button class="player-btn play-btn" id="playBtn" onclick="togglePlay()" title="Play/Pause">▶️</button>
+              <button class="player-btn" onclick="stopTrack()" title="Stop">⏹</button>
+              <button class="player-btn" onclick="nextTrack()" title="Next">⏭</button>
+              <button class="player-btn" id="repeatBtn" onclick="toggleRepeat()" title="Repeat">🔁</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  let playing = false, shuffle = false, repeat = false, timer = null, progress = 0;
+
+  function togglePlay() {
+    playing = !playing;
+    document.getElementById('playBtn').textContent = playing ? '⏸' : '▶️';
+    if (playing) { timer = setInterval(tickProgress, 500); }
+    else clearInterval(timer);
+  }
+
+  function stopTrack() {
+    playing = false; progress = 0;
+    document.getElementById('playBtn').textContent = '▶️';
+    document.getElementById('progress').style.width = '0%';
+    document.getElementById('currentTime').textContent = '0:00';
+    clearInterval(timer);
+  }
+
+  function tickProgress() {
+    progress = Math.min(progress + 0.5, 100);
+    document.getElementById('progress').style.width = progress + '%';
+    const secs = Math.floor(progress * 2.2);
+    document.getElementById('currentTime').textContent = `${Math.floor(secs/60)}:${String(secs%60).padStart(2,'0')}`;
+    if (progress >= 100) { if (repeat) progress = 0; else stopTrack(); }
+  }
+
+  function toggleShuffle() { shuffle = !shuffle; document.getElementById('shuffleBtn').classList.toggle('active', shuffle); }
+  function toggleRepeat() { repeat = !repeat; document.getElementById('repeatBtn').classList.toggle('active', repeat); }
+  function prevTrack() { stopTrack(); }
+  function nextTrack() { stopTrack(); }
+
+  async function addToPlaylist() {
+    const res = await apiGet('/api/playlists');
+    const playlists = res?.data || [];
+    renderPlaylistModal(playlists);
+    document.getElementById('playlistPickerModal').classList.add('open');
+  }
+
+  function renderPlaylistModal(playlists) {
+    const emojis = ['🎵','🎸','🎹','🎺','🥁','🎻','🎤','🎧','🎼','🎶'];
+    const container = document.getElementById('playlistPickerList');
+    if (!playlists.length) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:32px 0; color:var(--text-muted);">
+          <div style="font-size:3rem; margin-bottom:12px;">📋</div>
+          <p>No playlists yet.</p>
+          <p style="font-size:0.85rem; margin-top:4px;">Create one using "Create New Playlist" below!</p>
+        </div>`;
+      return;
+    }
+    container.innerHTML = playlists.map((p, i) => `
+      <div onclick="addSongToThisPlaylist(${p.id})" style="
+        display:flex; align-items:center; gap:14px; padding:14px 16px;
+        border:1px solid var(--border); border-radius:var(--radius-sm);
+        cursor:pointer; transition:var(--transition); margin-bottom:10px;
+        background:var(--bg-card);"
+        onmouseover="this.style.borderColor='var(--accent)'; this.style.background='var(--bg-hover)'"
+        onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg-card)'">
+        <div style="
+          width:46px; height:46px; border-radius:10px; flex-shrink:0;
+          background:linear-gradient(135deg,#16213e,#0f3460);
+          display:flex; align-items:center; justify-content:center; font-size:1.4rem;">
+          ${emojis[i % emojis.length]}
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; font-size:0.95rem;">${p.name}</div>
+          <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">
+            ${p.songCount || p.songs?.length || 0} songs
+            ${p.description ? ' · ' + p.description : ''}
+          </div>
+        </div>
+        <div style="color:var(--accent); font-size:1.2rem; flex-shrink:0;">+</div>
+      </div>`).join('');
+  }
+
+  async function addSongToThisPlaylist(playlistId) {
+    const res = await apiPost(`/api/playlists/${playlistId}/songs`, { songId: song.id });
+    closePlaylistModal();
+    if (res?.ok) {
+      showAlert('alert', '✅ Song added to playlist!', 'success');
+    } else if (res?.status === 409) {
+      showAlert('alert', '⚠️ This song is already in the playlist!');
+    } else {
+      showAlert('alert', res?.data?.message || 'Failed to add song');
+    }
+  }
+
+  function closePlaylistModal() {
+    document.getElementById('playlistPickerModal').classList.remove('open');
+    document.getElementById('createPlaylistForm').style.display = 'none';
+    document.getElementById('newPlaylistName').value = '';
+    document.getElementById('newPlaylistDesc').value = '';
+  }
+
+  function toggleCreateForm() {
+    const form = document.getElementById('createPlaylistForm');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    if (form.style.display === 'block') {
+      document.getElementById('newPlaylistName').focus();
+    }
+  }
+
+  async function createAndAdd() {
+    const name = document.getElementById('newPlaylistName').value.trim();
+    if (!name) {
+      document.getElementById('newPlaylistName').style.borderColor = 'var(--danger)';
+      return;
+    }
+    const desc = document.getElementById('newPlaylistDesc').value.trim();
+    const cr = await apiPost('/api/playlists', { name, description: desc || null });
+    if (!cr?.ok) { showAlert('alert', 'Failed to create playlist. Please try again.'); return; }
+
+    const ar = await apiPost(`/api/playlists/${cr.data.id}/songs`, { songId: song.id });
+    closePlaylistModal();
+    if (ar?.ok) {
+      showAlert('alert', `✅ Playlist "${name}" created and song added!`, 'success');
+    } else {
+      showAlert('alert', `✅ Playlist "${name}" created! Could not add song.`);
+    }
+  }
+
+  init();
+</script>
+
+<!-- Add to Playlist Modal -->
+<div class="modal-overlay" id="playlistPickerModal">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <div>
+        <h3 style="margin-bottom:2px;">🎵 Add to Playlist</h3>
+        <p style="font-size:0.8rem; color:var(--text-secondary); margin:0;">
+          Select a playlist or create a new one
+        </p>
+      </div>
+      <button class="btn-icon" onclick="closePlaylistModal()">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:20px;">
+
+      <!-- Existing playlists list -->
+      <div id="playlistPickerList"></div>
+
+      <!-- Divider -->
+      <div style="
+        display:flex; align-items:center; gap:10px;
+        margin:16px 0; color:var(--text-muted); font-size:0.8rem;">
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+        <span>OR</span>
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+      </div>
+
+      <!-- Create New Playlist Button -->
+      <button onclick="toggleCreateForm()" class="btn btn-outline btn-full" style="margin-bottom:12px;">
+        ➕ Create New Playlist
+      </button>
+
+      <!-- Create Playlist Form (hidden by default) -->
+      <div id="createPlaylistForm" style="
+        display:none; background:var(--bg-card);
+        border:1px solid var(--border); border-radius:var(--radius-sm);
+        padding:16px; margin-top:4px;">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px;">
+            Playlist Name *
+          </label>
+          <input type="text" id="newPlaylistName" class="form-control"
+            placeholder="e.g. Morning Vibes, Gym Hits..."
+            onkeydown="if(event.key==='Enter') createAndAdd()"
+            oninput="this.style.borderColor='var(--border)'">
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px;">
+            Description (optional)
+          </label>
+          <input type="text" id="newPlaylistDesc" class="form-control"
+            placeholder="What's this playlist about?"
+            onkeydown="if(event.key==='Enter') createAndAdd()">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="createAndAdd()" class="btn btn-primary" style="flex:1;">
+            ✅ Create & Add Song
+          </button>
+          <button onclick="toggleCreateForm()" class="btn btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

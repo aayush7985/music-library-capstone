@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — MusicLib</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+      MusicLib
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-title">Menu</div>
+      <ul>
+        <li class="nav-item"><a href="/user-dashboard.html" class="active">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg> Home
+        </a></li>
+        <li class="nav-item"><a href="/playlists.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6H3v2h12V6zm0 4H3v2h12v-2zM3 16h8v-2H3v2zM17 6v8.18c-.31-.11-.65-.18-1-.18-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3V8h3V6h-5z"/></svg> My Playlists
+        </a></li>
+        <li class="nav-item"><a href="/profile.html">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg> Profile
+        </a></li>
+      </ul>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-secondary btn-full btn-sm" onclick="logout()">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-wrapper">
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="navbar-brand">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        Song Library
+      </div>
+      <div class="navbar-spacer"></div>
+      <div class="navbar-actions">
+        <div class="notif-wrapper">
+          <button class="bell-btn" id="notif-btn" onclick="toggleNotifDropdown(currentUser?.userId || currentUser?.id)">
+            🔔
+            <span class="badge" id="notif-badge">0</span>
+          </button>
+          <div class="notif-dropdown" id="notif-dropdown">
+            <div class="notif-header">
+              <h4>Notifications</h4>
+              <button class="btn btn-sm btn-secondary" onclick="markAllReadAndRefresh()">Mark all read</button>
+            </div>
+            <div class="notif-list" id="notif-list"><div class="notif-empty">Loading...</div></div>
+          </div>
+        </div>
+        <div class="navbar-user">
+          <div class="user-avatar" id="nav-user-avatar">U</div>
+          <span id="nav-user-name">User</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <div class="page-header-row">
+        <div class="page-header">
+          <h1>Music Library 🎵</h1>
+          <p>Discover songs from the best artists</p>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          <input type="text" class="search-input" id="searchInput" placeholder="Search by title, artist, album, music director...">
+        </div>
+        <button class="btn btn-primary" onclick="searchSongs()">Search</button>
+        <button class="btn btn-secondary" onclick="loadSongs()">Reset</button>
+      </div>
+
+      <div id="alert" class="alert"></div>
+
+      <!-- Songs Grid -->
+      <div id="songsContainer">
+        <div class="empty-state"><div class="empty-icon">🎵</div><p>Loading songs...</p></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== ADD TO PLAYLIST MODAL ===== -->
+<div class="modal-overlay" id="playlistPickerModal">
+  <div class="modal" style="max-width:460px;">
+
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div>
+        <h3 style="margin-bottom:2px;">🎵 Add to Playlist</h3>
+        <p id="modalSongName" style="font-size:0.82rem; color:var(--accent); margin:0; font-weight:600;"></p>
+      </div>
+      <button class="btn-icon" onclick="closePlaylistModal()">✕</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body" style="padding:20px;">
+
+      <!-- Loading state -->
+      <div id="playlistLoadingState" style="text-align:center; padding:20px; display:none;">
+        <div class="spinner" style="margin:0 auto;"></div>
+      </div>
+
+      <!-- Existing playlists -->
+      <div id="playlistPickerList"></div>
+
+      <!-- Divider -->
+      <div style="display:flex; align-items:center; gap:10px; margin:16px 0; color:var(--text-muted); font-size:0.8rem;">
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+        <span>OR</span>
+        <div style="flex:1; height:1px; background:var(--border);"></div>
+      </div>
+
+      <!-- Create New Playlist toggle button -->
+      <button onclick="toggleCreateForm()" class="btn btn-outline btn-full" style="margin-bottom:12px;">
+        ➕ Create New Playlist
+      </button>
+
+      <!-- Create Playlist Form (hidden by default) -->
+      <div id="createPlaylistForm" style="
+        display:none;
+        background:var(--bg-card);
+        border:1px solid var(--border);
+        border-radius:var(--radius-sm);
+        padding:16px;">
+        <div class="form-group" style="margin-bottom:12px;">
+          <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px;">
+            Playlist Name *
+          </label>
+          <input type="text" id="newPlaylistName" class="form-control"
+            placeholder="e.g. Morning Vibes, Gym Hits..."
+            onkeydown="if(event.key==='Enter') createAndAdd()"
+            oninput="this.style.borderColor='var(--border)'">
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:5px;">
+            Description (optional)
+          </label>
+          <input type="text" id="newPlaylistDesc" class="form-control"
+            placeholder="What's this playlist about?"
+            onkeydown="if(event.key==='Enter') createAndAdd()">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="createAndAdd()" class="btn btn-primary" style="flex:1;">
+            ✅ Create & Add Song
+          </button>
+          <button onclick="toggleCreateForm()" class="btn btn-secondary">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script>
+  let currentUser = null;
+  let selectedSongId = null;
+  let selectedSongTitle = '';
+
+  async function init() {
+    if (!requireAuth('user')) return;
+    currentUser = getUser();
+    setUserNav();
+    await loadSongs();
+    const uid = currentUser?.userId || currentUser?.id;
+    if (uid) loadNotificationBadge(uid);
+  }
+
+  async function loadSongs() {
+    document.getElementById('searchInput').value = '';
+    const res = await apiGet('/api/songs');
+    renderSongs(res?.data || []);
+  }
+
+  async function searchSongs() {
+    const q = document.getElementById('searchInput').value.trim();
+    if (!q) { loadSongs(); return; }
+    const res = await apiGet(`/api/songs/search?query=${encodeURIComponent(q)}`);
+    renderSongs(res?.data || []);
+  }
+
+  document.getElementById('searchInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') searchSongs();
+  });
+
+  function renderSongs(songs) {
+    const container = document.getElementById('songsContainer');
+    if (!songs.length) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">🎵</div><h3>No songs found</h3><p>Try a different search term</p></div>';
+      return;
+    }
+    container.innerHTML = `<div class="songs-grid">${songs.map(s => songCard(s)).join('')}</div>`;
+  }
+
+  function songCard(s) {
+    const genres = ['🎸', '🎹', '🎺', '🥁', '🎻', '🎤', '🎧'];
+    const icon = genres[s.id % genres.length];
+    return `
+      <div class="song-card" onclick="viewSong(${s.id})">
+        <div class="song-card-cover">
+          <span class="cover-icon">${icon}</span>
+          ${s.genre ? `<span class="genre-badge">${s.genre}</span>` : ''}
+        </div>
+        <div class="song-card-body">
+          <div class="song-card-title">${s.title}</div>
+          <div class="song-card-singer">🎤 ${s.singer}</div>
+          <div class="song-card-meta">${s.albumName || ''} ${s.albumName && s.duration ? '·' : ''} ${s.duration || ''}</div>
+          <div class="song-card-actions">
+            <button class="btn btn-primary btn-sm"
+              onclick="event.stopPropagation(); openPlaylistModal(${s.id}, '${s.title.replace(/'/g, "\\'")}')">
+              + Playlist
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function viewSong(id) {
+    window.location.href = `/song-detail.html?id=${id}`;
+  }
+
+  /* ===== PLAYLIST MODAL FUNCTIONS ===== */
+
+  async function openPlaylistModal(songId, songTitle) {
+    selectedSongId = songId;
+    selectedSongTitle = songTitle;
+
+    // Set song name in modal header
+    document.getElementById('modalSongName').textContent = `"${songTitle}"`;
+
+    // Reset form state
+    document.getElementById('createPlaylistForm').style.display = 'none';
+    document.getElementById('newPlaylistName').value = '';
+    document.getElementById('newPlaylistDesc').value = '';
+    document.getElementById('playlistPickerList').innerHTML = '';
+
+    // Open modal
+    document.getElementById('playlistPickerModal').classList.add('open');
+
+    // Load playlists
+    await loadPlaylistsInModal();
+  }
+
+  async function loadPlaylistsInModal() {
+    document.getElementById('playlistLoadingState').style.display = 'block';
+    const res = await apiGet('/api/playlists');
+    document.getElementById('playlistLoadingState').style.display = 'none';
+
+    const playlists = res?.data || [];
+    renderPlaylistsInModal(playlists);
+  }
+
+  function renderPlaylistsInModal(playlists) {
+    const emojis = ['🎵','🎸','🎹','🎺','🥁','🎻','🎤','🎧','🎼','🎶'];
+    const container = document.getElementById('playlistPickerList');
+
+    if (!playlists.length) {
+      container.innerHTML = `
+        <div style="text-align:center; padding:28px 0; color:var(--text-muted);">
+          <div style="font-size:2.8rem; margin-bottom:10px;">📋</div>
+          <p style="font-size:0.9rem;">No playlists yet.</p>
+          <p style="font-size:0.8rem; margin-top:4px;">Create one using "Create New Playlist" below!</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = playlists.map((p, i) => `
+      <div onclick="addSongToThisPlaylist(${p.id})"
+        style="display:flex; align-items:center; gap:14px; padding:12px 14px;
+               border:1px solid var(--border); border-radius:var(--radius-sm);
+               cursor:pointer; transition:all 0.15s; margin-bottom:8px;
+               background:var(--bg-card);"
+        onmouseover="this.style.borderColor='var(--accent)';this.style.background='var(--bg-hover)';this.style.transform='translateX(3px)'"
+        onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--bg-card)';this.style.transform='none'">
+
+        <!-- Playlist icon -->
+        <div style="width:44px; height:44px; border-radius:10px; flex-shrink:0;
+                    background:linear-gradient(135deg,#16213e,#0f3460);
+                    display:flex; align-items:center; justify-content:center; font-size:1.3rem;">
+          ${emojis[i % emojis.length]}
+        </div>
+
+        <!-- Playlist info -->
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:700; font-size:0.93rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            ${p.name}
+          </div>
+          <div style="font-size:0.76rem; color:var(--text-secondary); margin-top:2px;">
+            ${p.songCount || p.songs?.length || 0} songs
+            ${p.description ? ' &bull; ' + p.description : ''}
+          </div>
+        </div>
+
+        <!-- Add icon -->
+        <div style="width:30px; height:30px; border-radius:50%; background:var(--accent-light);
+                    display:flex; align-items:center; justify-content:center;
+                    color:var(--accent); font-size:1.1rem; font-weight:700; flex-shrink:0;">
+          +
+        </div>
+      </div>`).join('');
+  }
+
+  async function addSongToThisPlaylist(playlistId) {
+    const res = await apiPost(`/api/playlists/${playlistId}/songs`, { songId: selectedSongId });
+    closePlaylistModal();
+    if (res?.ok) {
+      showAlert('alert', `✅ "${selectedSongTitle}" added to playlist!`, 'success');
+    } else if (res?.status === 409) {
+      showAlert('alert', `⚠️ "${selectedSongTitle}" is already in this playlist!`);
+    } else {
+      showAlert('alert', res?.data?.message || 'Failed to add song!');
+    }
+  }
+
+  function closePlaylistModal() {
+    document.getElementById('playlistPickerModal').classList.remove('open');
+    document.getElementById('createPlaylistForm').style.display = 'none';
+    document.getElementById('newPlaylistName').value = '';
+    document.getElementById('newPlaylistDesc').value = '';
+    document.getElementById('newPlaylistName').style.borderColor = 'var(--border)';
+  }
+
+  function toggleCreateForm() {
+    const form = document.getElementById('createPlaylistForm');
+    const isHidden = form.style.display === 'none';
+    form.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      setTimeout(() => document.getElementById('newPlaylistName').focus(), 100);
+    }
+  }
+
+  async function createAndAdd() {
+    const nameInput = document.getElementById('newPlaylistName');
+    const name = nameInput.value.trim();
+
+    if (!name) {
+      nameInput.style.borderColor = 'var(--danger)';
+      nameInput.focus();
+      return;
+    }
+
+    const desc = document.getElementById('newPlaylistDesc').value.trim();
+
+    // Create playlist
+    const cr = await apiPost('/api/playlists', { name, description: desc || null });
+    if (!cr?.ok) {
+      showAlert('alert', 'Failed to create playlist. Please try again.');
+      return;
+    }
+
+    // Add song to new playlist
+    const ar = await apiPost(`/api/playlists/${cr.data.id}/songs`, { songId: selectedSongId });
+    closePlaylistModal();
+
+    if (ar?.ok) {
+      showAlert('alert', `✅ Playlist "${name}" created and "${selectedSongTitle}" added!`, 'success');
+    } else {
+      showAlert('alert', `✅ Playlist "${name}" created! Could not add song.`);
+    }
+  }
+
+  async function markAllReadAndRefresh() {
+    const uid = currentUser?.userId || currentUser?.id;
+    if (!uid) return;
+    await apiPatch(`/api/notifications/user/${uid}/read-all`);
+    loadNotifications(uid);
+    loadNotificationBadge(uid);
+  }
+
+  // Close modal when clicking outside
+  document.getElementById('playlistPickerModal').addEventListener('click', function(e) {
+    if (e.target === this) closePlaylistModal();
+  });
+
+  init();
+</script>
+</body>
+</html>
